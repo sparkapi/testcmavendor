@@ -1,0 +1,82 @@
+<div class="col-xs-10">
+  <div class="panel panel-primary">
+    <div class="panel-heading">
+      <strong class="panel-title">Hybrid Flow Diagram</strong>
+    </div>
+    <div class="panel-body">
+      <div class="row">
+        <div class="col-xs-3 zero-pad-right" id="flow_legend">
+          <img src="/assets/oidc_hybrid_legend.png" class='img-responsive'>
+        </div>
+        <div class="col-xs-9 zero-pad-left" id="flow_diagram">
+          <img src="/assets/oidc_hybrid.png" class='img-responsive'>
+        </div>
+      </div> <!-- row -->
+      <div class="row">
+        <div class="col-xs-12">
+          <strong>Out of band:</strong><br><br>MLS B's OIDC Provider sets up
+          a trust relationship with MLS A's provider.  MLS B 
+          will allow MLS A's ID Tokens to be exchanged for
+          his own ID Tokens.  MLS B keeps a list of allowed client_ids 
+          from MLS A.  MLS A's ID Token audience MUST match against
+          the list kept in MLS B.
+          <br><br>
+          This relationship is unidirectional -- MLS A will not accept
+          a token exchange from MLS B.  (unless a second trust relationship is set up)
+          <br><br>
+
+          <ol class="alpha-list">
+            <li>Client Web Browser requests the API Consumer site</li>
+            <ol class="alpha-list">
+              <li>Member chooses a login provider</li>
+              <li>OpenID Connect client discovers the Provider's endpoints</li>
+            </ol>
+
+            <li>Client Web Browser sends the client_id and redirect_uri 
+            to the Provider's authorization endpoint</li>
+            <ol class="alpha-list">
+              <li>Member provides username/password</li>
+              <li>Member authorizes API Consumer access to data</li>
+            </ol>
+
+            <li>OIDC Provider responds with ID Token, Access Token, and 
+            Authorization Code to the Client Web Browser</li>
+            <ol class="alpha-list">
+              <li>Client verifies the ID Token signature</li>
+              <li>The Access Token is stored in a secure location and
+              verified against the ID Token <code>at_hash</code> signature</li>
+              <li>The Authorization Code is verified against the ID Token's
+              <code>c_hash</code> signature</li>
+            </ol>
+
+            <li>Client Web Browser sends the ID Token and Authorization Code
+            to the API Consumer</li>
+            <ol class="alpha-list">
+              <li>ID Token can be used as a sesssion cookie</li>
+              <li>The API Consumer verifies the authorization code against the 
+              ID Token's <code>c_hash</code> signature</li>
+            </ol>
+
+            <li>The API Consumer uses the Authorization Code to request
+            an ID Token, Access Token and/or Refresh Token
+            </li>
+            <ol class="alpha-list">
+              <li>API Consumer verifies the ID Token's at_hash 
+              against the access token</li>
+            </ol>
+
+            <li>Both the Client Web Browser and the API Consumer exchange
+            MLS A's ID Token at MLS B's Provider for an ID Token and Access Token 
+            for MLS B's services</li>
+
+            <li>Client Web Browser and API Consumer use each MLS's Access Token to retrieve:</li>
+            <ol class="alpha-list">
+              <li>Additional User Info Claims from the OIDC provider</li>
+              <li>OData API requests against RETS Web API</li>
+            </ol>
+        </div>
+      </div>
+    </div>
+  </div> <!-- panel -->
+</div> <!-- flow column -->
+

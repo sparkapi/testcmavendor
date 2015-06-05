@@ -1,0 +1,267 @@
+<% if ! session[:id_token] %>
+<% content_for :head do %>
+  <script type="text/javascript">
+      $(document).ready(function() {
+          // Restore configuration information from sessionStorage
+          OIDC.restoreInfo();
+          var token, code, id_token, user_info, issuer;
+
+          // Get ID Token: Returns ID Token if valid, else error. 
+          try {
+            id_token = OIDC.getValidIdToken();
+            var payload_obj = OIDC.getIdTokenPayload(id_token);
+            issuer = payload_obj['iss'];
+            // make it look nicer for viewing
+            var pretty = JSON.stringify( 
+              payload_obj,
+              undefined, 2
+              );
+            $("#id_token").text(pretty);
+          } catch(e) {
+            $("#id_token").html("Error: " + e.message);
+          }
+
+
+          // Get OAuth2 authorization code
+          try {
+            code = OIDC.getCode();
+            $("#code").html(code);
+          } catch(e) {
+            $("#code").html("Error: " + e.message);
+          }
+          
+          // Get Access Token
+          try {
+            token = OIDC.getAccessToken();
+            $("#token").html(token);
+
+          } catch(e) {
+            $("#token").html("Error: " + e.message);
+          }
+
+          // Look up extra Claims from UserInfo Endpoint
+          try
+          {
+            userinfo = OIDC.userinfo();
+            if ( userinfo )
+            {
+              var pretty = JSON.stringify( 
+                  userinfo,
+                  undefined, 2
+                  );
+              $("#userinfo").text(pretty);
+            }
+          } catch(e) {
+            $("#userinfo").html("Error: " + e.message);
+          }
+
+          // exchange ID Token for an Amazon Cognito token
+          try
+          {
+            var credentials = amazonExchange(id_token, issuer);
+            // call DynamoDB with the new Amazon ID Token/access token
+            dynamoData(credentials);
+          } catch(e) {
+            console.log("dynamo Error" + e.message);
+            $("#dynamo").html("Error: " + e.message);
+          }
+      
+          // Query Spark API for some properties using Access Token above 
+          try
+          {
+            // expires_in parameter in the URL
+            var expires_in = getExpiresIn();
+            // first, try to give our access token to Spark API
+            if ( token )
+              $("#properties").load('/properties', {access_token: token, expires_in: expires_in} );
+            // if we don't have one, give the authorization code next
+            else if ( code )
+              $("#properties").load('/properties', {code: code, expires_in: expires_in} );
+            else
+              $("#properites").html("No access token or authoriztion code provided");
+          } catch(e) {
+            $("#properties").html("Error: " + e.message);
+          }
+
+          // AJAX call to load the flow diagram content
+          try
+          {
+            var flow = tokens2Flow({ 
+              id_token: id_token,
+              code: code,
+              token: token});
+            $("#flow_diagram").load('/diagram', { flow: flow });
+          } catch(e) {
+            $("#flow_diagram").html("Error: " + e.message);
+          }
+
+          /* Take our ID Token, and exchange it for an Amazon Cognito token */
+          function amazonExchange(id_token, issuer)
+          {
+            // AWS's logins map requires just the issuer domain name
+            var login_account = issuer.replace(/^https?:\/\//, '');
+            var logins = {};
+            logins[login_account] = id_token;
+            AWS.config.region = '<%= AWS_KEYS['region'] %>';
+            // Initialize the Amazon Cognito credentials provider
+            var credentials = new AWS.CognitoIdentityCredentials({
+              /* This is the Amazon "identity pool" that I have specified openidp.fbsdata.com
+               * as a trusted Provider.  (Along with Google)
+               */
+              IdentityPoolId: '<%= AWS_KEYS['identity_pool_id']%>',
+              Logins: logins
+            });
+            AWS.config.credentials = credentials;
+            return credentials;
+          }
+
+          /* After receiving an Amazon Cognito token, hit DynamoDB and pull some data */
+          function dynamoData(credentials)
+          {
+            // DynamoDB client will automatically use the Cognito identity credentials provider
+            var ddb = new AWS.DynamoDB({ region: '<%= AWS_KEYS['region'] %>', credentials: credentials});
+            // Scan the table
+            ddb.scan({TableName: 'Properties'}, function (err, data) {
+              if (err){   // an error occurred
+                console.log("DynamoDB Error: " + err);
+                $("#dynamo").html("DynamoDB Error " + err);
+                return;
+              } else {      // successful response
+                $("#dynamo").text('DynamoDB records found:'  + data.Count + "\n\n");  
+                var to_json = DataToJSON(data);
+                var pretty = JSON.stringify( 
+                  to_json,
+                  undefined, 2
+                  );
+                $("#dynamo").append( pretty );
+              }
+            });
+
+          }
+
+          /* translate the AWS JSON data format to normal JSON.
+           * There has to be a method to do this, but I can't find it...
+           */
+          function DataToJSON(data)
+          {
+            var ret = [];
+            for ( var i = 0 ; i < data.Count ; i++ )
+            {
+              ret.push(ItemToJSON(data.Items[i])); 
+            }
+            return(ret);
+          }
+          function ItemToJSON(item) 
+          {
+            var ret = {};
+            for ( var key in item )
+            {
+              if ( item[key]['S'] )
+                ret[key] = item[key]['S'];
+              if ( item[key]['N'] )
+                ret[key] = parseInt( item[key]['N'] );
+              // add more data types here for something more production-ish
+            }
+            return(ret);
+          }
+         
+      });
+
+
+    </script>
+  <% end %>
+<% end %>
+  <div class="page-header">
+    <h1>Test CMA Vendor Callback</h1>
+  </div>
+  <div class="container">
+    <div class="row">
+      <div class="col-md-2">
+        <a href='http://TestCMAVendor.com' class='btn btn-primary'>Back</a>
+      </div>
+    </div>
+  
+    <div class="row">
+      <div class="col-md-6">
+        <h4>ID Token</h4>
+        <pre id="id_token"><% if session[:id_token] %>
+# populated server side:
+<%= session[:id_token] %>
+<% end %></pre> 
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6">
+        <h4>OAuth2 Authorization Code</h4>
+        <pre id="code"><% if params[:code] %>
+# request parameter, seen server side
+<%= params[:code] %>
+<% end %></pre>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6">
+        <h4>OAuth2 Access Token</h4>
+        <pre id="token"><% if session[:access_token] %>
+# populated server side
+<%= session[:access_token] %>
+<% end %></pre>
+      </div>
+    </div>
+
+    <% if session[:refresh_token] %> 
+    <div class="row">
+      <div class="col-md-6">
+        <h4>OAuth2 Refresh Token</h4>
+        <pre id="refresh">
+# populated server side
+<%= session[:refresh_token] %>
+</pre>
+      </div>
+    </div>
+    <% end %>
+
+    <div class="row">
+      <div class="col-md-8">
+        <h4>UserInfo Endpoint</h4>
+        <pre id="userinfo"><% if session[:userinfo] %>
+# populated server side
+<%= session[:userinfo] %>
+<% end%></pre> 
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-8">
+        <h4>Amazon DynamoDB Data</h4>
+        <pre id="dynamo"><% if @dynamo_properties %>
+# populated server side
+<%= @dynamo_properties %>
+<% end %></pre> 
+      </div>
+    </div>
+     
+    <div class="row">
+      <div class="col-md-8">
+        <h4>Properties From Spark API</h4>
+        <pre id="properties"><% if @properties %>
+# populated server side
+<%= @properties %>
+<% end %></pre> 
+      </div>
+    </div>
+
+    <div class="row flow-padding" id="flow_diagram"><% if session[:id_token] %>
+      <%= render partial: "diagram_authorization_code" %>
+    <%end %></div>
+
+    <div class="row">
+      <div class="col-md-2">
+        <a href='http://TestCMAVendor.com' class='btn btn-primary'>Back</a>
+      </div>
+    </div>
+
+  </div>  <!-- container -->
+

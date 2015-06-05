@@ -1,0 +1,16 @@
+#### SETUP NOTE:
+## When deploying your own rails app, copy this file 
+## as /config/keys.yml and fill in your own API keys below
+development: &development
+  "https://openidp.fbsdata.com":
+    client_id: '1234'
+    redirect_uri: 'https://testformvendor.com/callback'
+    client_secret: '5678'
+  "https://accounts.google.com":
+    client_id: '1234.apps.googleusercontent.com'
+    redirect_uri: 'https://testformvendor.com/callback'
+    client_secret: '5678'
+test: &test
+
+production: &production
+  <<: *development

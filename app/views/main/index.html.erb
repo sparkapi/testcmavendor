@@ -1,0 +1,102 @@
+<% content_for :head do %>
+    <script type="text/javascript">
+    /* The ONLY configuration needed to add a new OIDC Provider */
+    var providers = {
+      'SparkPlatform': {
+        // OAuth2 client_id
+        'client_id': 'byjk0hpy7x3siwb9xpmcraes',
+        // OAuth2 redirect_uri
+        'redirect_uri': 'https://testcmavendor.com/callback',
+        // OIDC discovery URL
+        'provider': 'https://openidp.fbsdata.com'
+      },
+      'Google': {
+        'client_id': '544524406413-frgddssmcfdtbsom28leb2pgasti9s2r.apps.googleusercontent.com',
+        'redirect_uri': 'https://testcmavendor.com/callback',
+        /* Google's Discovery service doesn't support CORS...
+         * manually specify endpoints
+         */
+        'provider_info': {
+          issuer: 'https://accounts.google.com',
+          authorization_endpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+          jwks_uri: 'https://www.googleapis.com/oauth2/v3/certs',
+          userinfo_endpoint: 'https://www.googleapis.com/oauth2/v3/userinfo'
+        }
+      }
+    };
+    // add a new button for each listed provider
+    $(document).ready(function() { 
+        for ( i in providers ) {
+          var $button = $("<button onClick=\"login('" + i + "')\">Sign In with " + i + "</button>");
+          $button.addClass('btn btn-primary');
+          $button.appendTo( $("#buttons") );
+        }
+    });
+    /* login() is called when a Provider button is clicked.
+     * 
+     */
+    function login(provider) {
+      // client/provider config settings
+      var provider_settings = providers[provider];
+      OIDC.setClientInfo( provider_settings );
+
+      // discover endpoints at the provider URL
+      if ( provider_settings['provider'] )
+        var provider_info = OIDC.discover( provider_settings['provider'] );
+      else // settings provided manually
+        var provider_info = provider_settings['provider_info'];
+
+      // store the discovery results in sessionStorage for reuse in the callback page
+      OIDC.setProviderInfo(provider_info);
+      OIDC.storeInfo(provider_info, provider_settings);
+      var response_type = $(".response_type:checked").map(function() {
+          return this.value;
+          }).get().join(' ');
+      // If Code flow, set a cookie with the issuer
+      // so the server-side knows which provider we picked
+      if ( response_type === "code" )
+        Cookies.set('issuer', provider_info['issuer']);
+
+      // redirect to login!
+      OIDC.login({
+          'response_type': response_type
+      }); 
+    }
+
+  </script>
+<% end %>
+<div class="page-header">
+  <h1>Test CMA Vendor <small>A Federated OpenID Connect Demo</small></h1>
+</div>
+
+<div class="container-fluid">
+
+  <div class="row">
+    <div class="col-sm-4 checks">
+    <div class="row"><b>Check the response_types desired</b></div>
+      <label>
+        <input type="checkbox" class="response_type" name="response_type" value="id_token" checked >ID Token (id_token)
+      </label>
+      <label>
+        <input type="checkbox" class="response_type" name="response_type" value="code">OAuth2 Authorization Code (code)
+      </label>
+      <label>
+        <input type="checkbox" class="response_type" name="response_type" value="token">OAuth2 Access Token (token)
+      </label>
+    </div> <!-- checks -->
+
+    <div class="col-sm-3">
+      <div class="panel panel-primary">
+        <div class="panel-heading">
+          <strong class="panel-title">OpenID Connect Flow</strong>
+        </div>
+        <div class="panel-body text-center" id="flow_text">
+        </div>
+      </div> <!-- panel -->
+    </div> <!-- flow column -->
+
+  </div>  <!-- row -->
+  <div class="row" id=buttons></div>
+</div> <!-- container -->
+
+

@@ -1,0 +1,83 @@
+// Place all the styles related to the main controller here.
+// They will automatically be included in application.css.
+// You can use Sass (SCSS) here: http://sass-lang.com/
+body {
+  /* background: url('/assets/circles_background.jpg') no-repeat center center fixed; */
+  background: url('/assets/circles-green-background.jpg') no-repeat center center fixed; 
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+  margin: 0px 30px !important;
+}
+.page-header {
+  color: #fff;
+  margin: 20px 0 20px;
+  padding: 5px 30px 5px;
+  background-color: #1B8A00;
+  -webkit-border-top-left-radius: 5px;
+  -webkit-border-top-right-radius: 5px;
+  -moz-border-radius-topleft: 5px;
+  -moz-border-radius-topright: 5px;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+  border-bottom-left-radius: 5px;
+  border-bottom-right-radius: 5px;
+}
+/*
+.panel-primary > .panel-heading {
+  background-color: #1B8A00 !important;
+  border-color: #1B8A00 !important;
+}
+*/
+h1 {
+  margin-bottom: 20px;
+}
+.btn {
+  display: block;
+  margin-bottom: 15px; 
+}
+pre {
+  font-size: 16px;
+}
+/*
+pre {
+  font-size: 16px;
+  width: 500px;
+  white-space: pre-wrap;       
+  white-space: -moz-pre-wrap; 
+  white-space: -pre-wrap;    
+  white-space: -o-pre-wrap; 
+  word-wrap: break-word;   
+}
+*/
+label {
+  margin-top: 5px;
+}
+.userinfo {
+  width: 600px;
+}
+.checks {
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+small {
+  color: #eee !important;
+  font-size: 60%;
+}
+.flow-padding {
+  padding-top: 20px;
+}
+.zero-pad-left {
+  padding-left: 0px !important;
+}
+.zero-pad-right {
+  padding-right: 0px !important;
+}
+ol.alpha-list li {  
+  list-style-type: decimal; 
+}
+ol.alpha-list ol.alpha-list li {  
+  list-style-type: lower-alpha; 
+}
+

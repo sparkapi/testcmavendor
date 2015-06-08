@@ -66,19 +66,28 @@
             $("#dynamo").html("Error: " + e.message);
           }
       
-          // Query Spark API for some properties using Access Token above 
+          /* Query Spark API for some properties using Access Token above,
+           * only if it was obtained from the Spark IdP
+           */
           try
           {
-            // expires_in parameter in the URL
-            var expires_in = getExpiresIn();
-            // first, try to give our access token to Spark API
-            if ( token )
-              $("#properties").load('/properties', {access_token: token, expires_in: expires_in} );
-            // if we don't have one, give the authorization code next
-            else if ( code )
-              $("#properties").load('/properties', {code: code, expires_in: expires_in} );
+            if ( issuer == "https://openidp.fbsdata.com" )
+            {
+              // expires_in parameter in the URL
+              var expires_in = getExpiresIn();
+              // first, try to give our access token to Spark API
+              if ( token )
+                $("#properties").load('/properties', {access_token: token, expires_in: expires_in} );
+              // if we don't have one, give the authorization code next
+              else if ( code )
+                $("#properties").load('/properties', {code: code, expires_in: expires_in} );
+              else
+                $("#properites").html("No access token or authoriztion code provided");
+            }
             else
-              $("#properites").html("No access token or authoriztion code provided");
+            {
+              $("#properties").html("I don't trust identities from " + issuer + "!");
+            }
           } catch(e) {
             $("#properties").html("Error: " + e.message);
           }

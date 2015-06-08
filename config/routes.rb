@@ -9,4 +9,7 @@ Rails.application.routes.draw do
   get 'diagram' => 'main#diagram'
   post 'diagram' => 'main#diagram'
 
+  # Used by Github.com to trigger a new deployment
+  post 'webhook' => 'deploy#webhook'
+
 end
